@@ -5,17 +5,16 @@ import br.com.vfs.demomongodb.repository.ImageRepository;
 import org.bson.BsonBinarySubType;
 import org.bson.types.Binary;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.gridfs.GridFsOperations;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -46,4 +45,15 @@ public class ImageResource {
         return ResponseEntity.created(URI.create(String.format("/images/%s", uuid))).build();
     }
 
+    @GetMapping("/retrieve/{uuid}")
+    public ResponseEntity retrieveFile(@PathVariable("uuid") String uuid){
+        Image image = imageRepository.findById(uuid).orElseThrow(RuntimeException::new);
+        System.out.println(image);
+        List<String> list = Arrays.asList(image.getDocType().split("/"));
+        final String type = list.get(list.size()-1);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(image.getDocType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=image.%s", type))
+                .body(image.getFile().getData());
+    }
 }
